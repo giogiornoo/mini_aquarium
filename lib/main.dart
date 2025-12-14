@@ -21,8 +21,10 @@ void main() async {
         ? DefaultFirebaseOptions.web 
         : DefaultFirebaseOptions.currentPlatform,
     );
-  } catch (e) {
-    print('Firebase initialization error: $e');
+    print('✓ Firebase initialized successfully');
+  } catch (e, stackTrace) {
+    print('✗ Firebase init failed: $e');
+    print('Stack: $stackTrace');
   }
   
   runApp(const DrawAFishApp());
