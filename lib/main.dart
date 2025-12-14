@@ -391,46 +391,34 @@ class _DrawingScreenState extends State<DrawingScreen> {
   Future<Uint8List?> _exportCroppedPng() async {
     try {
       print('Starting PNG export...');
-      final boundary = _canvasKey.currentContext?.findRenderObject() as RenderRepaintBoundary?;
-      if (boundary == null) {
-        print('✗ Boundary is null');
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Canvas not ready to export.')),
-        );
+      
+      if (_points.isEmpty) {
+        print('No points to export');
         return null;
       }
 
-      if (boundary.debugNeedsPaint) {
-        await Future.delayed(const Duration(milliseconds: 20));
+      print('Calculating bounds...');
+      const pixelRatio = 3.0;
+      final Rect? bounds = _calculateStrokeBounds(scale: pixelRatio);
+      
+      if (bounds == null) {
+        print('No bounds calculated');
+        return null;
       }
 
-      print('Capturing image...');
-      const pixelRatio = 3.0;
-      final ui.Image image = await boundary.toImage(pixelRatio: pixelRatio);
-      print('Image captured: ${image.width}x${image.height}');
-      
-      final Rect? bounds = _calculateStrokeBounds(scale: pixelRatio);
-      final Rect fullRect =
-          Rect.fromLTWH(0, 0, image.width.toDouble(), image.height.toDouble());
-      final Rect srcRect = bounds == null
-          ? fullRect
-          : bounds.intersect(fullRect);
-
       print('Creating transparent canvas...');
-      // Create transparent background for export
       final recorder = ui.PictureRecorder();
       final canvas = Canvas(recorder);
-      final dstRect = Rect.fromLTWH(0, 0, srcRect.width, srcRect.height);
       
-      // Draw only the strokes without white background
+      // Draw strokes on transparent background
       for (int i = 0; i < _points.length - 1; i++) {
-        if (_points[i] != null && _points[i + 1] != null) {
-          final p1 = _points[i]!;
-          final p2 = _points[i + 1]!;
-          
+        final p1 = _points[i];
+        final p2 = _points[i + 1];
+        
+        if (p1 != null && p2 != null) {
           // Offset points by the crop bounds
-          final offsetX = srcRect.left / pixelRatio;
-          final offsetY = srcRect.top / pixelRatio;
+          final offsetX = bounds.left / pixelRatio;
+          final offsetY = bounds.top / pixelRatio;
           
           final paint = Paint()
             ..color = p1.color
@@ -447,15 +435,25 @@ class _DrawingScreenState extends State<DrawingScreen> {
         }
       }
       
-      print('Converting to PNG...');
-      final croppedImage = await recorder
-          .endRecording()
-          .toImage(srcRect.width.ceil(), srcRect.height.ceil());
-      final byteData =
-          await croppedImage.toByteData(format: ui.ImageByteFormat.png);
-      if (byteData == null) {
-        throw Exception('Failed to encode PNG');
+      print('Converting to image...');
+      final width = bounds.width.ceil();
+      final height = bounds.height.ceil();
+      
+      if (width <= 0 || height <= 0) {
+        print('Invalid dimensions: ${width}x${height}');
+        return null;
       }
+      
+      final image = await recorder.endRecording().toImage(width, height);
+      
+      print('Encoding PNG...');
+      final byteData = await image.toByteData(format: ui.ImageByteFormat.png);
+      
+      if (byteData == null) {
+        print('Failed to encode PNG');
+        return null;
+      }
+      
       print('✓ PNG export successful');
       return byteData.buffer.asUint8List();
     } catch (e, stackTrace) {
