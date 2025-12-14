@@ -12,6 +12,12 @@ import 'firebase_options.dart';
 import 'firebase_service.dart';
 import 'fishtank.dart';
 
+class AppColors {
+  static const Color background = Color(0xFFE0F7FA); // Light cyan
+  static const Color canvas = Colors.white;
+  static const Color buttonText = Colors.black;
+}
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   
@@ -521,11 +527,13 @@ class _DrawingScreenState extends State<DrawingScreen> {
     );
 
     try {
+      print('Uploading fish: $name');
       await firebaseService.uploadFish(
         name: name,
         description: description,
         imageBytes: pngBytes,
       );
+      print('✓ Upload successful');
 
       if (!mounted) return;
       Navigator.of(context).pop(); // Close loading dialog
@@ -571,7 +579,9 @@ class _DrawingScreenState extends State<DrawingScreen> {
           );
         },
       );
-    } catch (e) {
+    } catch (e, stackTrace) {
+      print('✗ Upload error: $e');
+      print('Stack: $stackTrace');
       if (!mounted) return;
       Navigator.of(context).pop(); // Close loading dialog
       ScaffoldMessenger.of(context).showSnackBar(
