@@ -46,9 +46,30 @@ class DrawAFishApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const MaterialApp(
+    return MaterialApp(
       debugShowCheckedModeBanner: false,
-      home: DrawingScreen(),
+      home: Scaffold(
+        body: SafeArea(
+          child: FutureBuilder(
+            future: Future.delayed(const Duration(milliseconds: 100)),
+            builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return const Center(child: CircularProgressIndicator());
+              }
+              
+              try {
+                return const DrawingScreen();
+              } catch (e, stackTrace) {
+                print('Error building DrawingScreen: $e');
+                print('Stack: $stackTrace');
+                return Center(
+                  child: Text('Error: $e'),
+                );
+              }
+            },
+          ),
+        ),
+      ),
     );
   }
 }
