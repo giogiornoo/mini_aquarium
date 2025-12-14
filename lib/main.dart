@@ -389,21 +389,26 @@ class _DrawingScreenState extends State<DrawingScreen> {
   }
 
   Future<Uint8List?> _exportCroppedPng() async {
-    final boundary = _canvasKey.currentContext?.findRenderObject() as RenderRepaintBoundary?;
-    if (boundary == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Canvas not ready to export.')),
-      );
-      return null;
-    }
-
-    if (boundary.debugNeedsPaint) {
-      await Future.delayed(const Duration(milliseconds: 20));
-    }
-
     try {
+      print('Starting PNG export...');
+      final boundary = _canvasKey.currentContext?.findRenderObject() as RenderRepaintBoundary?;
+      if (boundary == null) {
+        print('✗ Boundary is null');
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Canvas not ready to export.')),
+        );
+        return null;
+      }
+
+      if (boundary.debugNeedsPaint) {
+        await Future.delayed(const Duration(milliseconds: 20));
+      }
+
+      print('Capturing image...');
       const pixelRatio = 3.0;
       final ui.Image image = await boundary.toImage(pixelRatio: pixelRatio);
+      print('Image captured: ${image.width}x${image.height}');
+      
       final Rect? bounds = _calculateStrokeBounds(scale: pixelRatio);
       final Rect fullRect =
           Rect.fromLTWH(0, 0, image.width.toDouble(), image.height.toDouble());
@@ -411,6 +416,7 @@ class _DrawingScreenState extends State<DrawingScreen> {
           ? fullRect
           : bounds.intersect(fullRect);
 
+      print('Creating transparent canvas...');
       // Create transparent background for export
       final recorder = ui.PictureRecorder();
       final canvas = Canvas(recorder);
@@ -441,6 +447,7 @@ class _DrawingScreenState extends State<DrawingScreen> {
         }
       }
       
+      print('Converting to PNG...');
       final croppedImage = await recorder
           .endRecording()
           .toImage(srcRect.width.ceil(), srcRect.height.ceil());
@@ -449,8 +456,11 @@ class _DrawingScreenState extends State<DrawingScreen> {
       if (byteData == null) {
         throw Exception('Failed to encode PNG');
       }
+      print('✓ PNG export successful');
       return byteData.buffer.asUint8List();
-    } catch (e) {
+    } catch (e, stackTrace) {
+      print('✗ PNG export error: $e');
+      print('Stack: $stackTrace');
       if (!mounted) return null;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Export failed: $e')),
