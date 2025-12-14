@@ -15,16 +15,27 @@ import 'fishtank.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   
-  try {
-    await Firebase.initializeApp(
-      options: kIsWeb 
-        ? DefaultFirebaseOptions.web 
-        : DefaultFirebaseOptions.currentPlatform,
-    );
-    print('✓ Firebase initialized successfully');
-  } catch (e, stackTrace) {
-    print('✗ Firebase init failed: $e');
-    print('Stack: $stackTrace');
+  // Initialize Firebase if web, but don't block app startup
+  if (kIsWeb) {
+    Future.microtask(() async {
+      try {
+        await Firebase.initializeApp(
+          options: DefaultFirebaseOptions.web,
+        );
+        print('✓ Firebase initialized');
+      } catch (e) {
+        print('✗ Firebase error: $e');
+        // Continue anyway
+      }
+    });
+  } else {
+    try {
+      await Firebase.initializeApp(
+        options: DefaultFirebaseOptions.currentPlatform,
+      );
+    } catch (e) {
+      print('Firebase init error: $e');
+    }
   }
   
   runApp(const DrawAFishApp());
@@ -494,13 +505,6 @@ class _DrawingScreenState extends State<DrawingScreen> {
         description: description,
         imageBytes: pngBytes,
       );
-
-      // Also add to local list for immediate display
-      submittedFish.add(Fish(
-        name: name,
-        description: description,
-        imageBytes: pngBytes,
-      ));
 
       if (!mounted) return;
       Navigator.of(context).pop(); // Close loading dialog

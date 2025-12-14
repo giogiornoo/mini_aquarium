@@ -23,8 +23,6 @@ class Fish {
   });
 }
 
-// Global fish collection
-final List<Fish> submittedFish = [];
 
 class FishTankScreen extends StatefulWidget {
   const FishTankScreen({super.key});
@@ -36,6 +34,7 @@ class FishTankScreen extends StatefulWidget {
 class _FishTankScreenState extends State<FishTankScreen> {
   final FirebaseService _firebaseService = FirebaseService();
   bool _isLoading = true;
+  List<Fish> _localFish = [];
 
   @override
   void initState() {
@@ -45,15 +44,16 @@ class _FishTankScreenState extends State<FishTankScreen> {
 
   Future<void> _loadFish() async {
     try {
+      print('Loading fish from Firebase...');
       final fishList = await _firebaseService.loadAllFish();
+      print('✓ Loaded ${fishList.length} fish');
+      
       if (mounted) {
         setState(() {
-          submittedFish.clear();
-          submittedFish.addAll(fishList);
+          _localFish = fishList;
           _isLoading = false;
         });
       }
-      print('✓ Loaded ${fishList.length} fish');
     } catch (e, stackTrace) {
       print('✗ Error loading fish: $e');
       print('Stack: $stackTrace');
@@ -77,7 +77,7 @@ class _FishTankScreenState extends State<FishTankScreen> {
       body: SafeArea(
         child: _isLoading
             ? const Center(child: CircularProgressIndicator())
-            : submittedFish.isEmpty
+            : _localFish.isEmpty
             ? Center(
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
@@ -111,7 +111,7 @@ class _FishTankScreenState extends State<FishTankScreen> {
                 builder: (context, constraints) {
                   final tankSize = Size(constraints.maxWidth, constraints.maxHeight);
                   return Stack(
-                    children: submittedFish.map((fish) {
+                    children: _localFish.map((fish) {
                       return SwimmingFish(
                         key: ObjectKey(fish),
                         fish: fish,
@@ -122,7 +122,7 @@ class _FishTankScreenState extends State<FishTankScreen> {
                 },
               ),
       ),
-      floatingActionButton: submittedFish.isNotEmpty
+      floatingActionButton: _localFish.isNotEmpty
           ? FloatingActionButton(
               onPressed: () => Navigator.of(context).pop(),
               backgroundColor: Colors.white,
