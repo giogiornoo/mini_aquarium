@@ -42,17 +42,27 @@ class FirebaseService {
       List<Fish> fishList = [];
 
       for (var doc in snapshot.docs) {
-        final data = doc.data() as Map<String, dynamic>;
-        final String base64Image = data['imageData'];
+        try {
+          final data = doc.data() as Map<String, dynamic>;
+          final String? base64Image = data['imageData'] as String?;
 
-        // Decode base64 to bytes
-        final Uint8List imageBytes = base64Decode(base64Image);
+          if (base64Image == null || base64Image.isEmpty) {
+            print('Skipping fish with missing imageData');
+            continue;
+          }
 
-        fishList.add(Fish(
-          name: data['name'] ?? 'Unknown',
-          description: data['description'] ?? '',
-          imageBytes: imageBytes,
-        ));
+          // Decode base64 to bytes
+          final Uint8List imageBytes = base64Decode(base64Image);
+
+          fishList.add(Fish(
+            name: data['name'] ?? 'Unknown',
+            description: data['description'] ?? '',
+            imageBytes: imageBytes,
+          ));
+        } catch (e) {
+          print('Error processing individual fish: $e');
+          continue;
+        }
       }
 
       print('Loaded ${fishList.length} fish from Firebase');
@@ -73,10 +83,14 @@ class FirebaseService {
       List<Fish> fishList = [];
 
       for (var doc in snapshot.docs) {
-        final data = doc.data();
-        final String base64Image = data['imageData'];
-
         try {
+          final data = doc.data() as Map<String, dynamic>;
+          final String? base64Image = data['imageData'] as String?;
+
+          if (base64Image == null || base64Image.isEmpty) {
+            continue;
+          }
+
           final Uint8List imageBytes = base64Decode(base64Image);
 
           fishList.add(Fish(
@@ -86,6 +100,7 @@ class FirebaseService {
           ));
         } catch (e) {
           print('Error decoding fish image: $e');
+          continue;
         }
       }
 
