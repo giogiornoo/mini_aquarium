@@ -44,12 +44,25 @@ class _FishTankScreenState extends State<FishTankScreen> {
   }
 
   Future<void> _loadFish() async {
-    final fishList = await _firebaseService.loadAllFish();
-    setState(() {
-      submittedFish.clear();
-      submittedFish.addAll(fishList);
-      _isLoading = false;
-    });
+    try {
+      final fishList = await _firebaseService.loadAllFish();
+      if (mounted) {
+        setState(() {
+          submittedFish.clear();
+          submittedFish.addAll(fishList);
+          _isLoading = false;
+        });
+      }
+      print('✓ Loaded ${fishList.length} fish');
+    } catch (e, stackTrace) {
+      print('✗ Error loading fish: $e');
+      print('Stack: $stackTrace');
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
   }
 
   @override
