@@ -21,27 +21,20 @@ class AppColors {
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   
-  // Initialize Firebase if web, but don't block app startup
-  if (kIsWeb) {
-    Future.microtask(() async {
-      try {
-        await Firebase.initializeApp(
-          options: DefaultFirebaseOptions.web,
-        );
-        print('✓ Firebase initialized');
-      } catch (e) {
-        print('✗ Firebase error: $e');
-        // Continue anyway
-      }
-    });
-  } else {
-    try {
+  // Wait for Firebase to initialize
+  try {
+    if (kIsWeb) {
+      await Firebase.initializeApp(
+        options: DefaultFirebaseOptions.web,
+      );
+      print('✓ Firebase initialized');
+    } else {
       await Firebase.initializeApp(
         options: DefaultFirebaseOptions.currentPlatform,
       );
-    } catch (e) {
-      print('Firebase init error: $e');
     }
+  } catch (e) {
+    print('✗ Firebase init error: $e');
   }
   
   runApp(const DrawAFishApp());
@@ -52,30 +45,9 @@ class DrawAFishApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
+    return const MaterialApp(
       debugShowCheckedModeBanner: false,
-      home: Scaffold(
-        body: SafeArea(
-          child: FutureBuilder(
-            future: Future.delayed(const Duration(milliseconds: 100)),
-            builder: (context, snapshot) {
-              if (snapshot.connectionState == ConnectionState.waiting) {
-                return const Center(child: CircularProgressIndicator());
-              }
-              
-              try {
-                return const DrawingScreen();
-              } catch (e, stackTrace) {
-                print('Error building DrawingScreen: $e');
-                print('Stack: $stackTrace');
-                return Center(
-                  child: Text('Error: $e'),
-                );
-              }
-            },
-          ),
-        ),
-      ),
+      home: DrawingScreen(),
     );
   }
 }
