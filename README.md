@@ -1,3 +1,3 @@
 # mini_aquarium
 
-A new Flutter project.
+draw a fish small project
